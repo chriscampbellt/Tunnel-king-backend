@@ -1,5 +1,5 @@
-import re
 import os
+import re
 
 
 def increment_version(version):
@@ -37,7 +37,7 @@ def update_urls_version(file_path, new_version):
 def bum_version():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     pyproject_file = os.path.join(base_dir, "pyproject.toml")
-    urls_file = os.path.join(base_dir, "conf", "urls.py")
+    urls_file = os.path.join(base_dir, "config", "urls.py")
 
     with open(pyproject_file, "r") as file:
         pyproject_content = file.read()

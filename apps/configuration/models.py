@@ -1,5 +1,5 @@
 from django.db import models
-from apps.accounts.models import CustomUser
+
 
 class BaseModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
@@ -8,9 +8,10 @@ class BaseModel(models.Model):
     class Meta:
         abstract = True
 
+
 class Configuration(BaseModel):
     name = models.CharField(max_length=255)
-    created_by = models.ForeignKey("accounts.CustomUser", on_delete=models.CASCADE)
+    created_by = models.ForeignKey("accounts.User", on_delete=models.CASCADE)
     data = models.JSONField()  # Stores configuration settings
 
 
@@ -21,7 +22,7 @@ class ModelServer(BaseModel):
         max_length=50,
         choices=[("running", "Running"), ("stopped", "Stopped"), ("error", "Error")],
     )
-    
+
 
 class DeploymentLog(BaseModel):
     server = models.ForeignKey(ModelServer, on_delete=models.CASCADE)
