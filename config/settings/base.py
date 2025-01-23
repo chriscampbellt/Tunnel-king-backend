@@ -5,7 +5,6 @@ from pathlib import Path
 import sentry_sdk
 from decouple import Csv, config
 
-# env = environ.Env()
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
@@ -90,11 +89,7 @@ CUSTOM_APPS = [
     "apps.accounts",
     "apps.organization",
     "apps.core",
-    "apps.configuration",
-    "apps.models",
-    "apps.deployment",
-    "apps.user_application",
-    "apps.infrastructure",
+    "apps.ai_models",
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + EXTERNAL_APPS + CUSTOM_APPS
