@@ -1,7 +1,8 @@
 from django.contrib import admin
 
 # Register your models here.
-from apps.organization.models import Department, Organization, Role, TeamMember
+from apps.organization.models import (Department, Document, Organization, Role,
+                                      TeamMember)
 
 
 @admin.register(Department)
@@ -71,3 +72,30 @@ class OrganizationAdmin(admin.ModelAdmin):
 class TeamMemberAdmin(admin.ModelAdmin):
     list_display = ("id", "organization", "user", "role", "department")
     list_filter = ("organization", "user", "role", "department")
+
+
+@admin.register(Document)
+class DocumentAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "created",
+        "modified",
+        "status",
+        "activate_date",
+        "deactivate_date",
+        "organization",
+        "file",
+        "name",
+        "uploaded_at",
+        "uploaded_by",
+    )
+    list_filter = (
+        "created",
+        "modified",
+        "activate_date",
+        "deactivate_date",
+        "organization",
+        "uploaded_at",
+        "uploaded_by",
+    )
+    search_fields = ("name",)

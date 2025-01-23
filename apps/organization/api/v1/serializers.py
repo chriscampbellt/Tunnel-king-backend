@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from apps.accounts.models import User
-from apps.organization.models import Department, Organization, Role
+from apps.organization.models import Department, Document, Organization, Role
 
 
 class RoleSerializer(serializers.ModelSerializer):
@@ -43,8 +43,21 @@ class AddTeamMemberSerializer(serializers.Serializer):
 
 class OrganizationSerializer(serializers.ModelSerializer):
     owner = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    user_role = serializers.CharField(read_only=True)
 
     class Meta:
         model = Organization
-        fields = ["id", "name", "owner"]  # Include your model fields here
+        fields = ["id", "name", "owner", "user_role"]  # Include your model fields here
         read_only_fields = ["owner"]
+
+
+class DocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Document
+        fields = ["id", "organization", "file", "name", "uploaded_at", "uploaded_by"]
+        read_only_fields = ["id", "uploaded_at", "uploaded_by", "organization"]
+
+    def create(self, validated_data):
+        # Set the uploaded_by field to the current user
+        validated_data["uploaded_by"] = self.context["request"].user
+        return super().create(validated_data)
