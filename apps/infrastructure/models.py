@@ -1,5 +1,7 @@
 from django.db import models
+
 from apps.configuration.models import BaseModel
+
 
 # Create your models here.
 class Infrastructure(BaseModel):
@@ -8,9 +10,14 @@ class Infrastructure(BaseModel):
     port = models.PositiveIntegerField()
     status = models.CharField(
         max_length=50,
-        choices=[("active", "Active"), ("down", "Down"), ("maintenance", "Maintenance")],
+        choices=[
+            ("active", "Active"),
+            ("down", "Down"),
+            ("maintenance", "Maintenance"),
+        ],
     )
     last_checked = models.DateTimeField(auto_now=True)
+
 
 class Log(models.Model):
     message = models.TextField()

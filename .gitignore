@@ -1,4 +1,4 @@
-
+.idea
 # Created by https://www.toptal.com/developers/gitignore/api/python,visualstudiocode,linux
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,visualstudiocode,linux
 
@@ -135,6 +135,7 @@ celerybeat.pid
 .env
 .venv
 env/
+!config/env
 venv/
 ENV/
 env.bak/
@@ -198,3 +199,7 @@ cython_debug/
 .DS_Store
 .AppleDouble
 .LSOverride
+
+/static
+/media
+/ollama
