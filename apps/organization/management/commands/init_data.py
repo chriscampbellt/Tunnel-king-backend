@@ -1,6 +1,6 @@
 from django.core.management import BaseCommand
 
-from apps.accounts.constants import DEPARTMENTS, ROLES
+from apps.organization.constants import DEPARTMENTS, ROLES
 from apps.organization.models import Department, Role
 
 

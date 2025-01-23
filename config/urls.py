@@ -29,6 +29,7 @@ urlpatterns = [
     # Enabled: create, profile, login, logout, logoutall
     path("api/v1/auth/", include("apps.accounts.api.v1.urls")),
     path("api/v1/organization/", include("apps.organization.api.v1.urls")),
+    path("api/v1/ai-model/", include("apps.ai_models.api.v1.urls")),
     path("core/", include("apps.core.urls")),
     path("", index),
 ]

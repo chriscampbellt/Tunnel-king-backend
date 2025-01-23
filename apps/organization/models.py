@@ -124,3 +124,22 @@ class TeamMember(models.Model):
 
     def __str__(self):
         return f"{self.user.email} in {self.organization.name}"
+
+
+class Document(TimeStampedModel, ActivatorModel):
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="documents"
+    )
+    file = models.FileField(upload_to="organization_documents/")
+    name = models.CharField(max_length=255, null=True, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    uploaded_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uploaded_documents",
+    )
+
+    def __str__(self):
+        return f"{self.name} for {self.organization.name}"
