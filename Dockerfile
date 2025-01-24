@@ -2,18 +2,27 @@
 FROM python:3.11-slim
 
 # Set environment variables
-ENV PYTHONUNBUFFERED 1
-ARG REQUIREMENTS_FILE
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    && apt-get clean
+ENV PYTHONUNBUFFERED=1
+ENV POETRY_VIRTUALENVS_CREATE=false
 
 # Set the working directory
-RUN mkdir /app
 WORKDIR /app
 
-COPY ${REQUIREMENTS_FILE} /app/requirements.txt
-# Install pip-tools globally
-RUN pip install --upgrade pip
-RUN pip install -r /app/requirements.txt
+# Install system dependencies and Poetry
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    && apt-get clean
+
+# Install Poetry
+RUN curl -sSL https://install.python-poetry.org | python3 - \
+    && ln -s ~/.local/bin/poetry /usr/local/bin/poetry
+
+# Copy project dependency files to the working directory
+COPY pyproject.toml /app/
+
+# Check if poetry.lock exists before copying
+COPY poetry.lock /app/
+
+# Install dependencies using Poetry, including dev dependencies
+RUN poetry lock && poetry install --with dev --no-interaction --no-ansi --no-root
