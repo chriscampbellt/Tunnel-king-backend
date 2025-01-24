@@ -1,14 +1,15 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 
-from .forms import CustomUserCreationForm, CustomUserChangeForm
-from .models import *
+from .forms import CustomUserChangeForm, CustomUserCreationForm
+from .models import Credential, User
 
 
-class CustomUserAdmin(UserAdmin):
+@admin.register(User)
+class UserAdmin(DjangoUserAdmin):
     add_form = CustomUserCreationForm
     form = CustomUserChangeForm
-    model = CustomUser
+    model = User
     list_display = (
         "email",
         "is_staff",
@@ -24,6 +25,10 @@ class CustomUserAdmin(UserAdmin):
         (
             "Permissions",
             {"fields": ("is_staff", "is_active", "groups", "user_permissions")},
+        ),
+        (
+            "Department & Role",
+            {"fields": ("department", "role")},
         ),
     )
     add_fieldsets = (
@@ -47,8 +52,14 @@ class CustomUserAdmin(UserAdmin):
     ordering = ("email",)
 
 
-admin.site.register(CustomUser, CustomUserAdmin)
-
-admin.site.register(Role)
-admin.site.register(UserRole)
-admin.site.register(Credential)
+@admin.register(Credential)
+class CredentialAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "created",
+        "modified",
+        "user",
+        "token",
+        "expires_at",
+    )
+    list_filter = ("created", "modified", "user", "expires_at")

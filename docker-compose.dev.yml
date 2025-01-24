@@ -1,0 +1,94 @@
+x-common: &common
+  stdin_open: true
+  tty: true
+  restart: unless-stopped
+  networks:
+    - service-network
+
+x-django-build: &django-build
+  build:
+    context: .
+    args:
+      REQUIREMENTS_FILE: ${REQUIREMENTS_FILE}
+
+include:
+  - model_server/docker-compose.yml
+
+services:
+  django:
+    <<: [*django-build, *common]
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - static_data:/app/static
+      - media_data:/app/media
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    command: python manage.py runserver 0.0.0.0:8000
+
+  postgres:
+    <<: [*common]
+    image: postgres:15
+    container_name: postgres_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env
+
+  redis:
+    <<: [*common]
+    image: redis:latest
+    container_name: redis_cache
+    ports:
+      - "6379:6379"
+
+  celery:
+    <<: [*django-build, *common]
+    command: bash -c "celery -A apps worker -l info"
+    depends_on:
+      - django
+      - redis
+    env_file:
+      - .env
+    volumes:
+      - ./:/app
+      - media_data:/code/media
+
+  celery_beat:
+    <<: [*django-build, *common]
+    command: bash -c "celery -A apps beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    depends_on:
+      - django
+      - redis
+    env_file:
+      - .env
+    volumes:
+      - ./:/app
+      - media_data:/code/media
+
+  flower:
+    <<: [*django-build, *common]
+    command: bash -c "celery -A apps flower --conf=/app/config/settings/flowerconfig.py -l info"
+    ports:
+      - "5555:5555"
+    depends_on:
+      - celery
+      - redis
+    env_file:
+      - .env
+    volumes:
+      - .:/app/
+
+volumes:
+  static_data:
+  media_data:
+  postgres_data:
+
+networks:
+  service-network:
+    driver: bridge

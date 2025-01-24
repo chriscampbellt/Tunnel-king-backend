@@ -3,12 +3,26 @@
 The AI Service Manager is a desktop and web-based solution designed to manage model servers, user interactions, and configurations. It allows administrators to oversee model deployments, user permissions, and live updates while providing an intuitive user interface for interacting with models.
 
 # Setup Instructions
+install make and docker, docker-compose
 
-Prerequisites
+copy env file and set the required env accordingly
+```bash
 
-Install Python 3.10+.
+copy ./config/env/.env.example .env
+```
+build
+```bash
+make dev.build
+```
+run app
+```
+make dev.up
+```
+open new terminal and apply migrations
+```bash
 
-Install Poetry for dependency management.
+make dev.migrate
+```
 
 # License
 
