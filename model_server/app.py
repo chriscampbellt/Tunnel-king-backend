@@ -46,3 +46,16 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.send_text(f"Error: {str(e)}")
     finally:
         await websocket.close()
+
+
+@app.get("/ping/")
+async def read_root():
+    return {"ping": "pong"}
+
+
+# list ollama downloaded models
+@app.get("/list-models/")
+async def list_models():
+    return ollama.Client(
+        host="",
+    ).list()

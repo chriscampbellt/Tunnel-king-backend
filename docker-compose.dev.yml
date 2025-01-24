@@ -2,12 +2,17 @@ x-common: &common
   stdin_open: true
   tty: true
   restart: unless-stopped
+  networks:
+    - service-network
 
 x-django-build: &django-build
   build:
     context: .
     args:
       REQUIREMENTS_FILE: ${REQUIREMENTS_FILE}
+
+include:
+  - model_server/docker-compose.yml
 
 services:
   django:
@@ -25,6 +30,7 @@ services:
     command: python manage.py runserver 0.0.0.0:8000
 
   postgres:
+    <<: [*common]
     image: postgres:15
     container_name: postgres_db
     ports:
@@ -35,6 +41,7 @@ services:
       - .env
 
   redis:
+    <<: [*common]
     image: redis:latest
     container_name: redis_cache
     ports:
@@ -77,24 +84,11 @@ services:
     volumes:
       - .:/app/
 
-  ollama:
-    image: ollama/ollama
-    volumes:
-      - ./ollama:/root/.ollama
-    ports:
-      - "11434"
-
-  model_server:
-    build:
-      context: ./model_server
-      dockerfile: Dockerfile
-    command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
-    ports:
-      - "8001:8000"
-    volumes:
-      - ./model_server:/app
-
 volumes:
   static_data:
   media_data:
   postgres_data:
+
+networks:
+  service-network:
+    driver: bridge
