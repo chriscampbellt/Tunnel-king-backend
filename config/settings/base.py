@@ -266,9 +266,9 @@ STORAGES = {
 }
 
 STATIC_URL = "/static/"
-STATICFILES_DIRS = []
-STATIC_ROOT = "static"
+STATICFILES_DIRS = [BASE_DIR / "apps/static"]
+STATIC_ROOT = "/app/static"
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = "media"
+MEDIA_ROOT = "/app/media"
 ADMIN_MEDIA_PREFIX = STATIC_URL + "admin/"

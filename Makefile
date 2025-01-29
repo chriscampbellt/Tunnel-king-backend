@@ -29,6 +29,9 @@ dev.down:
 dev.dcshell:
 	docker compose -f docker-compose.dev.yml exec django /bin/bash
 
+dev.collectstatic:
+	docker compose -f docker-compose.dev.yml exec django python manage.py collectstatic
+
 dev.msshell:
 	docker compose -f docker-compose.dev.yml exec model_server /bin/bash
 

@@ -26,3 +26,6 @@ COPY poetry.lock /app/
 
 # Install dependencies using Poetry, including dev dependencies
 RUN poetry lock && poetry install --with dev --no-interaction --no-ansi --no-root
+
+
+COPY . /app
