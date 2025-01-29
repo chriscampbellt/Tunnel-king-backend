@@ -1,4 +1,4 @@
-from django.contrib.auth import get_user_model, login
+from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.models import Site
 from django.core.mail import send_mail
@@ -6,44 +6,31 @@ from django.shortcuts import get_object_or_404
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from knox.views import LoginView as KnoxLoginView
-from rest_framework import generics, permissions, status
+from rest_framework import generics, status
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.serializers import TokenBlacklistSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .schema import (LOGIN_RESPONSE_SCHEMA, PROFILE_DETAIL_SCHEMA,
                      PROFILE_PATCH_SCHEMA, PROFILE_PUT_SCHEMA,
                      USER_CREATE_RESPONSE_SCHEMA)
-from .serializers import (AuthTokenSerializer, CreateUserSerializer,
-                          ForgotPasswordSerializer, ResetPasswordSerializer,
-                          SetPasswordSerializer, UserProfileSerializer)
+from .serializers import (CreateUserSerializer, ForgotPasswordSerializer,
+                          ResetPasswordSerializer, SetPasswordSerializer,
+                          UserLoginSerializer, UserProfileSerializer)
 
 User = get_user_model()
 
 
 @extend_schema(responses=LOGIN_RESPONSE_SCHEMA)
-class LoginView(KnoxLoginView):
-    permission_classes = (permissions.AllowAny,)
-    serializer_class = AuthTokenSerializer
-
-    def post(self, request, format=None) -> Response:
-        serializer = AuthTokenSerializer(
-            data=request.data, context={"request": request}
-        )
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data["user"]
-        login(request, user)
-        return super(LoginView, self).post(request, format=None)
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["request"] = self.request
-        return context
+class UserLoginAPIView(TokenObtainPairView):
+    permission_classes = (AllowAny,)
+    serializer_class = UserLoginSerializer
 
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
-    permission_classes = (permissions.IsAuthenticated,)
 
     def get_object(self):
         return self.request.user
@@ -63,7 +50,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 
 @extend_schema(responses=USER_CREATE_RESPONSE_SCHEMA)
 class SignUpAPIView(generics.CreateAPIView):
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = (AllowAny,)
     serializer_class = CreateUserSerializer
 
 
@@ -136,6 +123,8 @@ class SetPasswordAPIView(APIView):
     },
 )
 class ForgotPasswordAPIView(APIView):
+    permission_classes = (AllowAny,)
+
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
         if serializer.is_valid():
@@ -180,6 +169,8 @@ class ForgotPasswordAPIView(APIView):
     },
 )
 class ResetPasswordAPIView(APIView):
+    permission_classes = (AllowAny,)
+
     def post(self, request):
         serializer = ResetPasswordSerializer(data=request.data)
         if serializer.is_valid():
@@ -193,3 +184,16 @@ class ResetPasswordAPIView(APIView):
                 status=status.HTTP_200_OK,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            serializer = TokenBlacklistSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            return Response({"message": "Successfully logged out"}, status=200)
+        except Exception as e:  # noqa
+            pass
+        return Response({"error": "Invalid or expired token"}, status=400)

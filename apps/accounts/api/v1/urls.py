@@ -1,17 +1,18 @@
 from django.urls import path
-from knox import views as knox_views
+from rest_framework_simplejwt.views import TokenRefreshView
 
-from .views import (ForgotPasswordAPIView, LoginView, ResetPasswordAPIView,
-                    SetPasswordAPIView, SignUpAPIView, UserProfileView)
+from .views import (ForgotPasswordAPIView, LogoutView, ResetPasswordAPIView,
+                    SetPasswordAPIView, SignUpAPIView, UserLoginAPIView,
+                    UserProfileView)
 
 app_name = "accounts"
 
 urlpatterns = [
     path("signup/", SignUpAPIView.as_view(), name="create"),
     path("profile/", UserProfileView.as_view(), name="profile"),
-    path("login/", LoginView.as_view(), name="knox_login"),
-    path("logout/", knox_views.LogoutView.as_view(), name="knox_logout"),
-    path("logoutall/", knox_views.LogoutAllView.as_view(), name="knox_logoutall"),
+    path("login/", UserLoginAPIView.as_view(), name="login"),
+    path("logout/", LogoutView.as_view(), name="logout"),
+    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path(
         "set-password/<uidb64>/<token>/",
         SetPasswordAPIView.as_view(),

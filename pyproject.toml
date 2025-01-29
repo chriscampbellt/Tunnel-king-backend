@@ -31,6 +31,8 @@ drf-spectacular = "^0.28.0"
 psycopg2-binary = "^2.9.10"  # Optional: Consider keeping psycopg2 or replacing with psycopg2-binary.
 dj-rest-auth = "^3.0.0"  # Add the latest version compatible with your needs.
 python-decouple = "^3.8"
+djangorestframework-simplejwt = "^5.4.0"
+django-allauth = {extras = ["socialaccount"], version = "^65.3.1"}
 
 [tool.poetry.group.dev.dependencies]
 django-debug-toolbar = "^4.4.6"

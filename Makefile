@@ -24,7 +24,7 @@ dev.up:
 	docker compose -f docker-compose.dev.yml up
 
 dev.down:
-	docker compose -f docker-compose.dev.yml down
+	docker compose -f docker-compose.dev.yml down --remove-orphans
 
 dev.dcshell:
 	docker compose -f docker-compose.dev.yml exec django /bin/bash
