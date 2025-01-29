@@ -1,98 +1,44 @@
-name: Stage workflow
+name: Deploy to AKS
 
 on:
   push:
     branches:
       - development
 
-permissions:
-  id-token: write
-  contents: read
-
-env:
-  DOCKER_COMPOSE_FILE: "docker-compose.staging.yml"
-
 jobs:
-  test:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v3
+      - name: Log in to Azure
+        uses: azure/login@v1
         with:
-          python-version: "3.11"
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Install dependencies
+      - name: Log in to Azure Container Registry
         run: |
-          docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} build
+          az acr login --name myContainerRegistry
 
-      - name: Run Django tests
+      - name: Build and Push Docker Image
         run: |
-          docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} exec django python manage.py test
+          docker build -t myContainerRegistry.azurecr.io/django-app:latest .
+          docker push myContainerRegistry.azurecr.io/django-app:latest
 
-  build-and-push-docker-image:
-    runs-on: ubuntu-latest
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: "v1.22.0"
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Set up AKS
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: myResourceGroup
+          cluster-name: myAKSCluster
 
-      - name: Log in to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-
-      - name: Build and push Docker image
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          REPOSITORY: stage-tunnelking-django
-          IMAGE_TAG: ${{ github.sha }}
+      - name: Deploy to AKS
         run: |
-          docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} build django
-          docker tag $REGISTRY/$REPOSITORY:$IMAGE_TAG
-          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
-
-  migrations:
-    runs-on: ubuntu-latest
-    needs: build-and-push-docker-image
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Run migrations
-        run: |
-          docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} exec django python manage.py migrate
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: [build-and-push-docker-image, migrations]
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Install kubectl
-        run: |
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-          sudo apt-get update -y
-          sudo apt-get install gettext-base -y
-
-      - name: Update configmap
-        run: |
-          kubectl apply --validate=false -f deployment/staging-backend-configmap.yaml
-
-      - name: Apply database migrations
-        # update the commands
-        run: |
-          kubectl -n tunnelking delete job migration || true
-          kubectl -n tunnelking apply -f deployment/migration.yaml
-          kubectl -n tunnelking wait --for=condition=complete --timeout=180s job/migration || { kubectl -n tunnelking logs job/migration; exit 1; }
-          kubectl -n tunnelking logs job/migration
-
-      - name: Update deployment image
-        run: |
-          kubectl set image deployment/backend-deployment -n tunnelking backend="154408002227.dkr.ecr.us-east-1.amazonaws.com/stage-tunnelking-django:${{ github.sha }}"
+          kubectl set image deployment/django django=myContainerRegistry.azurecr.io/django-app:latest -n django-app
+          kubectl rollout status deployment django -n django-app
