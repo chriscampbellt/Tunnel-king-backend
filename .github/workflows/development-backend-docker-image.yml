@@ -1,4 +1,4 @@
-name: Deploy to AKS
+name: Develop branch deployment
 
 on:
   push:
@@ -13,32 +13,27 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12.0'
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
       - name: Log in to Azure
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Log in to Azure Container Registry
         run: |
-          az acr login --name myContainerRegistry
+          az acr login --name ${{ secrets.ACR_NAME }}
 
-      - name: Build and Push Docker Image
+      - name: Build and Push Docker Image to ACR
         run: |
-          docker build -t myContainerRegistry.azurecr.io/django-app:latest .
-          docker push myContainerRegistry.azurecr.io/django-app:latest
-
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: "v1.22.0"
-
-      - name: Set up AKS
-        uses: azure/aks-set-context@v3
-        with:
-          resource-group: myResourceGroup
-          cluster-name: myAKSCluster
-
-      - name: Deploy to AKS
-        run: |
-          kubectl set image deployment/django django=myContainerRegistry.azurecr.io/django-app:latest -n django-app
-          kubectl rollout status deployment django -n django-app
+          docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/django-app:${{ github.sha }} .
+          docker push ${{ secrets.ACR_NAME }}.azurecr.io/django-app:${{ github.sha }}
