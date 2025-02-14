@@ -1,0 +1,21 @@
+databases:
+  - name: tunnel_kings_development
+    plan: free
+    databaseName: tunnel_kings_development
+    user: tunnel_kings
+
+services:
+  - type: web
+    plan: free
+    name: Tunnel-king-backend
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "python -m gunicorn conf.asgi:application -k uvicorn.workers.UvicornWorker"    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mysitedb
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: WEB_CONCURRENCY
+        value: 4

@@ -10,14 +10,12 @@ root_path = environ.Path(__file__) - 2
 env.read_env(str(root_path.path(".env")))
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # -----------------------------------------------------------------------------
 # Basic Config
 # -----------------------------------------------------------------------------
 ROOT_URLCONF = "conf.urls"
 WSGI_APPLICATION = "conf.wsgi.application"
 DEBUG = env.bool("DEBUG", default=False)
-
 
 # -----------------------------------------------------------------------------
 # Time & Language
@@ -26,7 +24,6 @@ LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
-
 
 # -----------------------------------------------------------------------------
 # Security and Users
@@ -44,14 +41,22 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-
 # -----------------------------------------------------------------------------
 # Databases
 # -----------------------------------------------------------------------------
-DJANGO_DATABASE_URL = env.db("DATABASE_URL")
-DATABASES = {"default": DJANGO_DATABASE_URL}
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+import dj_database_url
 
+DJANGO_DATABASE_URL = env.db("DATABASE_URL")
+DATABASES = {
+    'default': dj_database_url.config(
+        default=DJANGO_DATABASE_URL,
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+}
+# DJANGO_DATABASE_URL = env.db("DATABASE_URL")
+# DATABASES = {"default": DJANGO_DATABASE_URL}
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # -----------------------------------------------------------------------------
 # Applications configuration
@@ -92,8 +97,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
-
 
 TEMPLATES = [
     {
@@ -110,7 +115,6 @@ TEMPLATES = [
         },
     },
 ]
-
 
 # -----------------------------------------------------------------------------
 # Rest Framework
@@ -172,7 +176,6 @@ CACHES = {
 
 USER_AGENTS_CACHE = "default"
 
-
 # -----------------------------------------------------------------------------
 # Celery
 # -----------------------------------------------------------------------------
@@ -185,7 +188,6 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "America/Santiago"
 CELERY_RESULT_EXTENDED = True
 
-
 # -----------------------------------------------------------------------------
 # Email
 # -----------------------------------------------------------------------------
@@ -195,7 +197,6 @@ EMAIL_PORT = env.int("EMAIL_PORT", default=587)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 
-
 # -----------------------------------------------------------------------------
 # Sentry and logging
 # -----------------------------------------------------------------------------
@@ -204,21 +205,12 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "console": {"format": "%(name)-12s %(levelname)-8s %(message)s"},
-        "file": {"format": "%(asctime)s %(name)-12s %(levelname)-8s %(message)s"},
     },
     "handlers": {
         "console": {"class": "logging.StreamHandler", "formatter": "console"},
-        "file": {
-            "level": "ERROR",
-            "class": "logging.handlers.RotatingFileHandler",
-            "formatter": "file",
-            "filename": f"{root_path('logs')}/error.log",
-            "maxBytes": 1000000,
-            "backupCount": 20,
-        },
     },
     "loggers": {
-        "": {"level": "ERROR", "handlers": ["console", "file"], "propagate": True},
+        "": {"level": "ERROR", "handlers": ["console"], "propagate": True},
     },
 }
 
@@ -234,7 +226,6 @@ if not DEBUG:
         profiles_sample_rate=1.0,
     )
 
-
 # -----------------------------------------------------------------------------
 # Static & Media Files
 # -----------------------------------------------------------------------------
@@ -249,6 +240,12 @@ STORAGES = {
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [root_path("static")]
+# This production code might break development mode, so we check whether we're in DEBUG mode
+if not DEBUG:  # Tell Django to copy static assets into a path called `staticfiles` (this is specific to Render)
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    # Enable the WhiteNoise storage backend, which compresses static files to reduce disk use
+    # and renames the files with unique names for each version to support long-term caching
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 if DEBUG:
     STATIC_ROOT = tempfile.mkdtemp()
@@ -258,7 +255,6 @@ else:
 MEDIA_URL = "/media/"
 MEDIA_ROOT = root_path("media_root")
 ADMIN_MEDIA_PREFIX = STATIC_URL + "admin/"
-
 
 # -----------------------------------------------------------------------------
 # Django Debug Toolbar and Django Extensions
