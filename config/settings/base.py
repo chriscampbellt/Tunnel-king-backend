@@ -2,19 +2,21 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+import environ
 import sentry_sdk
 from decouple import Csv, config
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-
+env = environ.Env()
+root_path = environ.Path(__file__) - 2
+env.read_env(str(root_path.path(".env")))
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # -----------------------------------------------------------------------------
 # Basic Config
 # -----------------------------------------------------------------------------
-ROOT_URLCONF = "config.urls"
-WSGI_APPLICATION = "config.wsgi.application"
-DEBUG = config("DEBUG", default=False, cast=bool)
-
+ROOT_URLCONF = "conf.urls"
+WSGI_APPLICATION = "conf.wsgi.application"
+DEBUG = env.bool("DEBUG", default=False)
 
 # -----------------------------------------------------------------------------
 # Time & Language
@@ -24,13 +26,13 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-
 # -----------------------------------------------------------------------------
 # Security and Users
 # -----------------------------------------------------------------------------
-SECRET_KEY = config("DJANGO_SECRET_KEY")
-ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", cast=Csv())
-AUTH_USER_MODEL = "accounts.User"
+SECRET_KEY = env("DJANGO_SECRET_KEY")
+# ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
+ALLOWED_HOSTS = ["*"]
+AUTH_USER_MODEL = "accounts.CustomUser"
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
@@ -40,23 +42,22 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-
 # -----------------------------------------------------------------------------
 # Databases
 # -----------------------------------------------------------------------------
+import dj_database_url
 
+DJANGO_DATABASE_URL = env.db("DATABASE_URL")
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DJANGO_DB_NAME", "postgres"),
-        "USER": os.getenv("DJANGO_DB_USER", "postgres"),
-        "PASSWORD": os.getenv("DJANGO_DB_PASSWORD", "postgres"),
-        "HOST": os.getenv("DJANGO_DB_HOST", "postgres"),
-        "PORT": os.getenv("DJANGO_DB_PORT", "5432"),
-    }
+    'default': dj_database_url.config(
+        default=DJANGO_DATABASE_URL,
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
 }
+# DJANGO_DATABASE_URL = env.db("DATABASE_URL")
+# DATABASES = {"default": DJANGO_DATABASE_URL}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
 
 # -----------------------------------------------------------------------------
 # Applications configuration
@@ -103,14 +104,13 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
-CSRF_TRUSTED_ORIGINS = ["http://0.0.0.0:3000"]
-CSRF_COOKIE_SECURE = True
-SITE_ID = 1
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [root_path("templates")],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -122,7 +122,6 @@ TEMPLATES = [
         },
     },
 ]
-
 
 # -----------------------------------------------------------------------------
 # Rest Framework
@@ -155,15 +154,27 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
 }
 
-CORS_ALLOW_ALL_ORIGINS = True
-REDIS_URL = config("REDIS_URL")
+if DEBUG:
+    REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] += (
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.BasicAuthentication",
+    )
+
+    REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] += (
+        "rest_framework.renderers.BrowsableAPIRenderer",
+    )
+
+CORS_ALLOW_ALL_ORIGINS = DEBUG
+if not CORS_ALLOW_ALL_ORIGINS:
+    CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS")
+
 # -----------------------------------------------------------------------------
 # Cache
 # -----------------------------------------------------------------------------
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_URL,
+        "LOCATION": env("REDIS_URL", default="redis://redis:6379"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
@@ -172,12 +183,11 @@ CACHES = {
 
 USER_AGENTS_CACHE = "default"
 
-
 # -----------------------------------------------------------------------------
 # Celery
 # -----------------------------------------------------------------------------
-CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND", default="django-db")
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://redis:6379")
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="django-db")
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers.DatabaseScheduler"
 CELERY_ACCEPT_CONTENT = ["application/json"]
 CELERY_TASK_SERIALIZER = "json"
@@ -185,64 +195,35 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "America/Santiago"
 CELERY_RESULT_EXTENDED = True
 
-
 # -----------------------------------------------------------------------------
 # Email
 # -----------------------------------------------------------------------------
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
-EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True)
-EMAIL_PORT = config("EMAIL_PORT", default=587)
-EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
-EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
-
+EMAIL_HOST = env("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 
 # -----------------------------------------------------------------------------
 # Sentry and logging
 # -----------------------------------------------------------------------------
 LOGGING = {
     "version": 1,
-    "disable_existing_loggers": True,
+    "disable_existing_loggers": False,
     "formatters": {
-        "simple": {
-            "format": "{asctime} {levelname} {message}",
-            "style": "{",
-        },
+        "console": {"format": "%(name)-12s %(levelname)-8s %(message)s"},
     },
     "handlers": {
-        "file": {
-            "level": "INFO",
-            "class": "apps.core.logging.handler.LoggingHandler",
-            "filename": BASE_DIR / "debug.log",
-            "formatter": "simple",
-            "backupCount": 10,
-            "maxBytes": 1 * 1024 * 1024,  # 1 MB
-        },
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "simple",
-        },
+        "console": {"class": "logging.StreamHandler", "formatter": "console"},
     },
     "loggers": {
-        "django.request": {
-            "handlers": [
-                "console",
-            ],
-            "level": "ERROR",
-            "propagate": False,
-        },
-        "apps": {
-            "handlers": [
-                "console",
-            ],
-            "level": "INFO",
-        },
+        "": {"level": "ERROR", "handlers": ["console"], "propagate": True},
     },
 }
 
 if not DEBUG:
     sentry_sdk.init(
-        dsn=config("SENTRY_DSN"),
+        dsn=env("SENTRY_DSN"),
         # Set traces_sample_rate to 1.0 to capture 100%
         # of transactions for tracing.
         traces_sample_rate=1.0,
@@ -251,7 +232,6 @@ if not DEBUG:
         # We recommend adjusting this value in production.
         profiles_sample_rate=1.0,
     )
-
 
 # -----------------------------------------------------------------------------
 # Static & Media Files
@@ -266,9 +246,27 @@ STORAGES = {
 }
 
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [BASE_DIR / "apps/static"]
-STATIC_ROOT = "/app/static"
+STATICFILES_DIRS = [root_path("static")]
+# This production code might break development mode, so we check whether we're in DEBUG mode
+if not DEBUG:  # Tell Django to copy static assets into a path called `staticfiles` (this is specific to Render)
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    # Enable the WhiteNoise storage backend, which compresses static files to reduce disk use
+    # and renames the files with unique names for each version to support long-term caching
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+if DEBUG:
+    STATIC_ROOT = tempfile.mkdtemp()
+else:
+    STATIC_ROOT = root_path("static_root")
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = "/app/media"
+MEDIA_ROOT = root_path("media_root")
 ADMIN_MEDIA_PREFIX = STATIC_URL + "admin/"
+
+# -----------------------------------------------------------------------------
+# Django Debug Toolbar and Django Extensions
+# -----------------------------------------------------------------------------
+if DEBUG:
+    INSTALLED_APPS += ["debug_toolbar"]
+    INTERNAL_IPS = ["127.0.0.1"]
+    MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
