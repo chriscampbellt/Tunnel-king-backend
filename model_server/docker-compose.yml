@@ -1,0 +1,30 @@
+x-common: &common
+  stdin_open: true
+  tty: true
+  restart: unless-stopped
+  networks:
+    - tunnilking_service-network
+
+services:
+  ollama:
+    image: ollama/ollama
+    volumes:
+      - ./ollama:/root/.ollama
+    ports:
+      - "11434"
+
+  model_server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./:/app
+    env_file:
+      - .env
+
+networks:
+  tunnilking_service-network:
+    external: true
