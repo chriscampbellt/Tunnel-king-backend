@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.accounts.models import User
+from apps.accounts.models import CustomUser
 from apps.organization.models import Department, Document, Organization, Role
 
 
@@ -36,7 +36,7 @@ class AddTeamMemberSerializer(serializers.Serializer):
                 }
             )
         email = data.get("email")
-        data["user"], data["user_created"] = User.objects.get_or_create(email=email)
+        data["user"], data["user_created"] = CustomUser.objects.get_or_create(email=email)
 
         return data
 

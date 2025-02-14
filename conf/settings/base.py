@@ -1,10 +1,10 @@
+import tempfile
 import os
 from datetime import timedelta
 from pathlib import Path
 
 import environ
 import sentry_sdk
-from decouple import Csv, config
 
 env = environ.Env()
 root_path = environ.Path(__file__) - 2
@@ -266,7 +266,7 @@ ADMIN_MEDIA_PREFIX = STATIC_URL + "admin/"
 # -----------------------------------------------------------------------------
 # Django Debug Toolbar and Django Extensions
 # -----------------------------------------------------------------------------
-if DEBUG:
-    INSTALLED_APPS += ["debug_toolbar"]
-    INTERNAL_IPS = ["127.0.0.1"]
-    MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
+# if DEBUG:
+#     # INSTALLED_APPS += ["debug_toolbar"]
+#     INTERNAL_IPS = ["127.0.0.1"]
+#     # MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")

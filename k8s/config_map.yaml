@@ -6,7 +6,7 @@ metadata:
 data:
   ENV: dev
   REQUIREMENTS_FILE: config/requirements/dev.txt
-  DJANGO_SETTINGS_MODULE: config.settings.dev
+  DJANGO_SETTINGS_MODULE: conf.settings.dev
   REDIS_URL: redis://redis:6379
   DJANGO_ALLOWED_HOSTS: "*"
   POSTGRES_DB: tunnelking

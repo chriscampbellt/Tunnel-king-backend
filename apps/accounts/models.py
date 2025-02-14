@@ -6,7 +6,7 @@ from django_extensions.db.models import TimeStampedModel
 from .managers import UserManager
 
 
-class User(AbstractUser):
+class CustomUser(AbstractUser):
     """
     CustomUser is a custom user model that extends Django's AbstractUser.
     It uses email as the unique identifier instead of the username.
@@ -34,7 +34,7 @@ class User(AbstractUser):
 
 class Credential(TimeStampedModel):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="credentials"
+        CustomUser, on_delete=models.CASCADE, related_name="credentials"
     )  # Link to User
     token = models.CharField(max_length=255, unique=True)  # API or session token
     expires_at = models.DateTimeField()  # Expiry time for the token
